@@ -57,7 +57,7 @@ namespace MibbitChatToHTML
                     string cleanLine = CleanUpMibbitFormatting(line, formatKey, currentWindow.mainNameDataTable);
                     Tuple<int, string> mibbitLine = new Tuple<int, string>(lineCount, cleanLine);
                     //currentChatLines.Add(mibbitLine);
-                    currentChatLines.Add(cleanLine + "\r\n");
+                    currentChatLines.Add(cleanLine + "\r\n\r\n");
                 }
                 lineCount++;
             }
@@ -86,7 +86,7 @@ namespace MibbitChatToHTML
                     if (processedLine.Length > 2 && isFileGood)
                     {
                         string cleanLine = UnformattedDiscordLineFormat(processedLine, currentWindow.mainNameDataTable);
-                        
+
                         if (cleanLine.Length > 0)
                         {
                             currentChatLines.Add(cleanLine + "\r\n");
@@ -217,7 +217,7 @@ namespace MibbitChatToHTML
                     }
                 }
                 string cleanedLine = CleanOddCharacters(composedLine);
-                currentLine = (cleanedLine.Substring(0, (cleanedLine.Length - 6)) + endParagraphTag + "\r\n");
+                currentLine = (cleanedLine.Substring(0, (cleanedLine.Length - 6)) + endParagraphTag + "\r\n\r\n");
                 //Adjust counter back
                 i--;
             }
@@ -284,19 +284,10 @@ namespace MibbitChatToHTML
         {
             //<p style='color:#TEXTCOLORHERE;'><span style='font-weight: bold; color:#000000;'>NAME</span> Text </p>
             string cleanedLine = string.Empty;
-            if (formatKey == 2)
-            {
-                cleanedLine = UnformattedLineFormat(line, cleanedLine, nameDataTable);
 
-            }
-            else if (formatKey == 1)
-            {
-                cleanedLine = CBCleanedVersionLineFormat(line, cleanedLine, nameDataTable);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            cleanedLine = UnformattedLineFormat(line, cleanedLine, nameDataTable);
+
+
 
             return cleanedLine;
 
@@ -306,24 +297,24 @@ namespace MibbitChatToHTML
         {
             //Right now "Word breaks things. Need to clean up when there is a quote and then not a space
             string trimmedLine = string.Empty;
-
-            string pattern = @"^(2[0-3]|[01]?[0-9]):([0-5]?[0-9])\t";
+            int NameStartIndex = 9;
+            string pattern = @"^(2[0-3]|[01]?[0-9])\:([0-5]?[0-9])(\s\s\s\s|\t)";
             Regex reg = new Regex(pattern, RegexOptions.IgnoreCase);
 
             Match match = reg.Match(line);
 
             if (match.Success && line.Length > 2)
             {
-                string ggg = line[6].ToString();
-                if (ggg != "\t")
+                string ggg = line[NameStartIndex].ToString();
+                if (!line.Contains("        ***"))
                 {
-                    string tempTrimmedLine = line.Substring(6, (line.Length - 6));
+                    string tempTrimmedLine = line.Substring(NameStartIndex, (line.Length - NameStartIndex));
 
                     int nameTagStart = 0;
-                    int nameTagEnd = tempTrimmedLine.IndexOf('\t', nameTagStart + 1);
+                    int nameTagEnd = tempTrimmedLine.IndexOf("    ", nameTagStart + 5);
                     string firstTemp = tempTrimmedLine.Replace(':', ' ');
                     string name = firstTemp.Substring((nameTagStart), (nameTagEnd - nameTagStart));
-                    string post = tempTrimmedLine.Substring(nameTagEnd + 1);
+                    string post = tempTrimmedLine.Substring(nameTagEnd + 4);
 
                     name = AddNameTags(name, nameDataTable);
                     post = CleanOddCharacters(post);
@@ -528,14 +519,24 @@ namespace MibbitChatToHTML
             tempString = CharacterReplacer(tempString, "~", "〰");
             tempString = CharacterReplacer(tempString, "”", "\"");
             tempString = CharacterReplacer(tempString, "“", "\"");
-            tempString = CharacterReplacer(tempString, "’", "'");
+            //tempString = CharacterReplacer(tempString, "’", "'");
+            //tempString = CharacterReplacer(tempString, "‘", "'");
             tempString = CharacterReplacer(tempString, "…", "... ");
             tempString = CharacterReplacer(tempString, "...", "... ");
             tempString = CharacterReplacer(tempString, "))", " )) ");
             tempString = CharacterReplacer(tempString, "_", string.Empty);
             tempString = CharacterReplacer(tempString, ".\"", ". \"");
             tempString = CharacterReplacer(tempString, "<br /> <br /> <br />", "<br /> <br />");
+            tempString = CharacterReplacer(tempString, "\r\n\r\n", "<br />");
 
+            Regex sPeriodSpace = new Regex(@"[a-zA-Z0-9À-ž][\.\,\!][a-zA-Z0-9À-ž]|[\.\,\!][\'\""][a-zA-Z0-9À-ž]");
+            Match match = sPeriodSpace.Match(tempString);
+            if (match.Success)
+            {
+                string firstHalf = tempString.Substring(0, match.Index + 2);
+                string secondHalf = tempString.Substring(match.Index + 2, tempString.Length - (match.Index + 2));
+                tempString = firstHalf + "  " + secondHalf;
+            }
             if (tempString.Length > 0)
             {
                 if ((tempString.IndexOf('-') + 1) != tempString.Length)
@@ -568,12 +569,23 @@ namespace MibbitChatToHTML
             }
         }
 
+
+
         private static string AddNameTags(string currentLine, DataTable nameDataTable)
         {
             List<string> nameList = nameDataTable.AsEnumerable().Select(x => x[0].ToString()).ToList();
             int xyz = nameList.FindIndex(s => currentLine.Contains(s));
-            currentLine = "<p style='color:" + nameDataTable.Rows[xyz][2].ToString() + "; font-family: " + nameDataTable.Rows[xyz][6].ToString() + "; letter-spacing: " + nameDataTable.Rows[xyz][7].ToString() + ";'>" +
-                "<span style='font-weight: bold; color:" + nameDataTable.Rows[xyz][5].ToString() + "; font-family: " + nameDataTable.Rows[xyz][3].ToString() + "; letter-spacing: " + nameDataTable.Rows[xyz][4].ToString() + ";'>" +
+            currentLine = "<p style='color:" + nameDataTable.Rows[xyz][2].ToString() + 
+                "; font-family: " + nameDataTable.Rows[xyz][3].ToString() + 
+                "; letter-spacing: " + nameDataTable.Rows[xyz][5].ToString() +
+                "; font-size: " + nameDataTable.Rows[xyz][4].ToString() +
+                 ";' class='" +
+                 PostTools.RemoveWhitespace(nameDataTable.Rows[xyz][1].ToString()) + "_Paragraph'>" +
+                "<span style='font-weight: bold; color: " + nameDataTable.Rows[xyz][2].ToString() + 
+                "; font-family: " + nameDataTable.Rows[xyz][3].ToString() +
+                "; letter-spacing: initial !important; font-size: unset !important;'" + " class='" +
+                PostTools.RemoveWhitespace(nameDataTable.Rows[xyz][1].ToString()) +
+                "_NameBlock'>" +
                 nameDataTable.Rows[xyz][1].ToString() + ": " + "</span>";
 
             return currentLine;

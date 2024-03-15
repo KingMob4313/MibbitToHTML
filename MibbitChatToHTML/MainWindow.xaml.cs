@@ -32,7 +32,7 @@ namespace MibbitChatToHTML
             CurrentTextFileTypes.Add("Mibbit IRC");
             CurrentTextFileTypes.Add("Discord");
             TextFileTypeComboBox.ItemsSource = CurrentTextFileTypes;
-            TextFileTypeComboBox.SelectedIndex = 1; //Default to Discord
+            TextFileTypeComboBox.SelectedIndex = 0; //Default to Discord
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -50,7 +50,9 @@ namespace MibbitChatToHTML
             {
                 var currentFileName = OFD.FileName;
                 FileNameTextBox.Text = currentFileName;
+                justChatLines.Add("<notextile>");
                 justChatLines = ChatFile.ProcessChatFile(OFD.FileName, TextFileTypeComboBox.SelectedIndex, this);
+                justChatLines.Add("</notextile>");
             }
             if(justChatLines != null)
             {
