@@ -51,7 +51,7 @@ namespace MibbitChatToHTML
                 var currentFileName = OFD.FileName;
                 FileNameTextBox.Text = currentFileName;
                 justChatLines.Add("<notextile>");
-                justChatLines = ChatFile.ProcessChatFile(OFD.FileName, TextFileTypeComboBox.SelectedIndex, this);
+                justChatLines.AddRange(ChatFile.ProcessChatFile(OFD.FileName, TextFileTypeComboBox.SelectedIndex, this));
                 justChatLines.Add("</notextile>");
             }
             if(justChatLines != null)
